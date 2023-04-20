@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit;
 
 @Data
 class TimeWheel {
-    // 每个槽的时间间隔
-    private long tickDuration;
+    // 滴答精度
+    private long tickMs;
     // 槽数组
     private TimeWheelSlot[] slots;
     // 当前槽指针
@@ -30,8 +30,8 @@ class TimeWheel {
         // 丢弃任务？
     });
 
-    public TimeWheel(int slotNum, long tickDuration, int level) {
-        this.tickDuration = tickDuration;
+    public TimeWheel(int slotNum, long tickMs, int level) {
+        this.tickMs = tickMs;
         this.slots = new TimeWheelSlot[slotNum];
         // slots 初始化
         for (int i = 0; i < slotNum; i++) {
@@ -43,13 +43,31 @@ class TimeWheel {
         this.higherTimeWheel = null;
     }
 
+    /**
+     * 获取当前时间轮，tick 一圈的时间
+     */
+    public long getTickCycleMs() {
+        return slots.length * tickMs;
+    }
+
+    /**
+     * 向当前时间轮添加延时任务，会对 tickCycleMs 取余
+     */
     public void addTask(TimeWheelSlotTask task) {
-        long ticks = task.getDelay() % (slots.length * tickDuration) / tickDuration;
+        long ticks = task.getDelay() % getTickCycleMs() / tickMs;
         int slotIndex = (int) ((currentSlot + ticks) % slots.length);
+        if (slotIndex == currentSlot) {
+            // 立即执行
+            scheduler.execute(task.getRunnable());
+            return;
+        }
         TimeWheelSlot slot = slots[slotIndex];
         slot.getTaskSet().add(task);
     }
 
+    /**
+     * 滴答前进
+     */
     public void tick() {
         currentSlot = (currentSlot + 1) % slots.length;
         System.out.println(LocalDateTime.now() + ": " + this);
@@ -77,6 +95,6 @@ class TimeWheel {
     @Override
     public String toString() {
         String holder = "level:{0} slotNum:{1,number,#} tickDuration:{2,number,#} currentSlot:{3,number,#}";
-        return MessageFormat.format(holder, level, slots.length, tickDuration, currentSlot);
+        return MessageFormat.format(holder, level, slots.length, tickMs, currentSlot);
     }
 }

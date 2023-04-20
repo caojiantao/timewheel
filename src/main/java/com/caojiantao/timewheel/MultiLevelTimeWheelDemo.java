@@ -32,10 +32,17 @@ public class MultiLevelTimeWheelDemo {
         });
         task4.setDelay(12000L);
 
+        TimeWheelSlotTask task5 = new TimeWheelSlotTask();
+        task5.setRunnable(() -> {
+            System.out.println(LocalDateTime.now() + ": ================ task5 立即执行 ================");
+        });
+        task5.setDelay(120L);
+
         multiLevelTimeWheel.addTask(task1);
         multiLevelTimeWheel.addTask(task2);
         multiLevelTimeWheel.addTask(task3);
         multiLevelTimeWheel.addTask(task4);
+        multiLevelTimeWheel.addTask(task5);
 
         System.out.println(LocalDateTime.now() + ": start=========================================");
         multiLevelTimeWheel.start();

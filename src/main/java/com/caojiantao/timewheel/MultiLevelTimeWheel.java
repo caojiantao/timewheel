@@ -20,7 +20,7 @@ public class MultiLevelTimeWheel {
         }
         TimeWheel timeWheel = lowestTimeWheel;
         for (int slotNum : higherSlotNumArray) {
-            long tickDuration = timeWheel.getSlots().length * timeWheel.getTickDuration();
+            long tickDuration = timeWheel.getSlots().length * timeWheel.getTickMs();
             TimeWheel higherTimeWheel = new TimeWheel(slotNum, tickDuration, timeWheel.getLevel() + 1);
             higherTimeWheel.setLowerTimeWheel(timeWheel);
             timeWheel.setHigherTimeWheel(higherTimeWheel);
@@ -31,18 +31,17 @@ public class MultiLevelTimeWheel {
     public void addTask(TimeWheelSlotTask task) {
         TimeWheel timeWheel = lowestTimeWheel;
         while (timeWheel != null) {
-            long delayLimit = timeWheel.getSlots().length * timeWheel.getTickDuration();
-            if (task.getDelay() < delayLimit) {
+            if (task.getDelay() < timeWheel.getTickCycleMs()) {
                 timeWheel.addTask(task);
                 return;
             }
             timeWheel = timeWheel.getHigherTimeWheel();
         }
-        throw new IllegalArgumentException();
+        throw new RuntimeException("提交的延时任务超过了最大延时时间");
     }
 
     public void start() {
-        long tickDuration = lowestTimeWheel.getTickDuration();
+        long tickDuration = lowestTimeWheel.getTickMs();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
